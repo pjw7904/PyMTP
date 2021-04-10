@@ -1,5 +1,5 @@
 from scapy.all import * # import all of the default scapy library
-from TestProtocol import Disney # import the custom Disney protocol I defined
+from ExampleProtocol import Disney # import the custom Disney protocol I defined
 
 def main():
     # Create a raw packet that contains only a Disney protocol header
