@@ -42,20 +42,14 @@ class MTP_Path(Packet):
     name = "MTP Path Information" # The name of the protocol
 
     # The fields that make up the protocol header
-    fields_desc= [ 
-                    ShortField("Cost", None),
-                    ByteField("Length", None),
-                    StrField("Path", None)
-                 ]
+    fields_desc=[
+                  ShortField("cost", None),
+                  FieldLenField("length", None, length_of="path"),
+                  StrLenField("path", NULL_PATH, length_from=lambda pkt:pkt.length)
+                ] 
 
     def extract_padding(self, s):
         return '', s
-    
-    def post_build(self, p, pay): # After path header is built, calculate length of path
-        if self.Length is None:
-            pathLen = len(self.Path)
-            p = p[:2] + bytes([pathLen]) + p[3:]
-        return p
 
 
 class MTP(Packet):
