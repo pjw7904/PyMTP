@@ -10,12 +10,20 @@ import sys # for command-line input
 
 
 def main():
-
+    # Decide how you want to output the recieved frames [console/pcap]
+    output = sys.argv[1]
+    
     # Get the interface to receive the frame from via a command-line argument
-    inIntf = sys.argv[1]
+    inIntf = sys.argv[2]
 
     # Record incoming frames and display their content
-    sniff(iface=inIntf, prn=lambda x: x.show())
+    if output == "console":
+        sniff(iface=inIntf, prn=lambda x: x.show())
+    elif output == "pcap":
+        mtpPcap = sniff(iface=inIntf)
+        wrpcap('MtpTestFrames.pcap', mtpPcap)
+    else:
+        print("please enter \"console\" for console/text output and \"pcap\" for a pcap file as output")
 
 
 if __name__ == "__main__":
