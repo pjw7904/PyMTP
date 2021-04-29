@@ -1,10 +1,12 @@
 
-# Created by https://www.toptal.com/developers/gitignore/api/windows,python
-# Edit at https://www.toptal.com/developers/gitignore?templates=windows,python
+# Created by https://www.toptal.com/developers/gitignore/api/python,windows,vscode
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,windows,vscode
 
 ### PyMTP ###
 # Scratch pad for notes
 Notes.txt
+
+
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -155,6 +157,14 @@ Thumbs.db
 .prof
 
 
+### vscode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db:encryptable
@@ -180,4 +190,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.toptal.com/developers/gitignore/api/windows,python
+# End of https://www.toptal.com/developers/gitignore/api/python,windows,vscode
