@@ -6,7 +6,7 @@ def main():
     path2 = MTP_Path(cost=23, path="14654343")
     pathList = [path1, path2]
 
-    testMTPFrame = MTP(type=3, Operation=1, Paths=pathList)
+    testMTPFrame = MTP(type=3, operation=1, port=1, paths=pathList)
 
     ls(testMTPFrame)
     testMTPFrame.show()

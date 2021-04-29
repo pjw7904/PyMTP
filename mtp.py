@@ -58,9 +58,10 @@ class MTP(Packet):
     # The fields that make up the protocol header
     fields_desc= [ 
                     ByteEnumField("type", UNKNOWN, MTP_Types),
-                    ConditionalField(ByteEnumField("Operation", UNKNOWN, MTP_Advt_Operations), lambda pkt:pkt.type == ADVT_TYPE),
-                    ConditionalField(FieldLenField("Count", None, count_of="Paths"), lambda pkt:pkt.type == ADVT_TYPE), # THIS CANNOT BE ZERO, IT HAS TO BE NONE TO WORK
-                    ConditionalField(PacketListField("Paths", [], MTP_Path, count_from=lambda pkt:pkt.Count), lambda pkt:pkt.type == ADVT_TYPE)
+                    ConditionalField(ByteEnumField("operation", UNKNOWN, MTP_Advt_Operations), lambda pkt:pkt.type == ADVT_TYPE),
+                    ConditionalField(ShortField("port", UNKNOWN), lambda pkt:pkt.type == ADVT_TYPE),
+                    ConditionalField(FieldLenField("count", None, count_of="paths"), lambda pkt:pkt.type == ADVT_TYPE), # THIS CANNOT BE ZERO, IT HAS TO BE NONE TO WORK
+                    ConditionalField(PacketListField("paths", [], MTP_Path, count_from=lambda pkt:pkt.count), lambda pkt:pkt.type == ADVT_TYPE)
                  ]
 
 bind_layers(Ether, MTP, type=0x4133)
