@@ -6,6 +6,7 @@ Desc: Automated configuration of remote nodes on GENI that are a part of a PyMTP
 '''
 
 from GENIutils import uploadToGENINode, getConfigInfo, buildDictonary, orchestrateRemoteCommands
+import argparse # for command-line input
 
 def main():
     # Grabbing configuration info from GENI config file
@@ -14,13 +15,21 @@ def main():
     codeSource = getConfigInfo("MTP Utilities", "localCodeDirectory")
     codeDestination = getConfigInfo("GENI Credentials", "remoteCodeDirectory")
 
+    # Grabbing configuration info from command-line arguments
+    argParser = argparse.ArgumentParser(description = "PyMTP GENI Configuration")
+    argParser.add_argument('--code') # Upload main code directory (../pymtp)
+    argParser.add_argument('--config') # Configure GENI node with necessary software/libraries/packages
+    args = argParser.parse_args()
+
+    # Config command to start a GNU screen and run through 
     startConfig = "screen -dmS conf bash -c 'sudo bash pymtp/initCmds.sh; exec bash'"
-    #stopConfig = "sudo pkill screen"
 
     print("\n+---------Number of Nodes: {0}--------+".format(len(GENIDict)))
     for node in GENIDict:
-        uploadToGENINode(node, GENIDict, codeSource, codeDestination)
-        orchestrateRemoteCommands(node, GENIDict, startConfig)
+        if(args.code):
+            uploadToGENINode(node, GENIDict, codeSource, codeDestination)
+        if(args.config):
+            orchestrateRemoteCommands(node, GENIDict, startConfig, waitForResult=False)
 
 if __name__ == "__main__":
     main() # run main
