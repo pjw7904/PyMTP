@@ -22,7 +22,7 @@ import subprocess
 import configparser
 import argparse
 
-def orchestrateRemoteCommands(remoteGENINode, GENISliceDict, cmdList, getOutput=False):
+def orchestrateRemoteCommands(remoteGENINode, GENISliceDict, cmdList, getOutput=False, waitForResult=True):
     """
     """
 
@@ -49,7 +49,8 @@ def orchestrateRemoteCommands(remoteGENINode, GENISliceDict, cmdList, getOutput=
     else:
         if(type(cmdList) is str):
             stdin, stdout, stderr = remoteShell.exec_command(cmdList)
-            #print("Result: {0}".format(getExitStatus(stdout.channel.recv_exit_status())))
+            if(waitForResult):
+                print("Result: {0}".format(getExitStatus(stdout.channel.recv_exit_status())))
 
         elif(type(cmdList) is list):
             print("#####SCRIPT COMMAND LIST#####")
@@ -57,8 +58,11 @@ def orchestrateRemoteCommands(remoteGENINode, GENISliceDict, cmdList, getOutput=
             print("#############################")
 
             for command in cmdList:
+                print("sending command")
                 stdin, stdout, stderr = remoteShell.exec_command(command)
-                print("Result: {0}".format(getExitStatus(stdout.channel.recv_exit_status())))
+                if(waitForResult):
+                    print("Waiting for result")
+                    print("Result: {0}".format(getExitStatus(stdout.channel.recv_exit_status())))
 
         else:
             sys.exit("not a valid command, please check what you are passing to the function")
