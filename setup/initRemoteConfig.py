@@ -17,8 +17,8 @@ def main():
 
     # Grabbing configuration info from command-line arguments
     argParser = argparse.ArgumentParser(description = "PyMTP GENI Configuration")
-    argParser.add_argument('--code') # Upload main code directory (../pymtp)
-    argParser.add_argument('--config') # Configure GENI node with necessary software/libraries/packages
+    argParser.add_argument('--code', action = "store_true") # Upload main code directory (../pymtp)
+    argParser.add_argument('--config', action = "store_true") # Configure GENI node with necessary software/libraries/packages
     args = argParser.parse_args()
 
     # Config command to start a GNU screen and run through 
