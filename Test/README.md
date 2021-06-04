@@ -1,3 +1,3 @@
-Any script that mentions MTP **will not** work in this test directory, you have to move it to the pymtp directory where mtp.py is located. Not a huge deal, but don't panic if you want to test something and it doesn't know where to find something/what to do.
+Currently, access to the MTP header and such in the core pymtp directory is done via explicitly adding that directory to the PYTHONPATH. Other methods (__init__ and such) aren't working for some unknown reason. It's ugly, but it works™!
 
-Python's ability to find custom libraries outside of the current directory isn't working and is **stupid**. Java makes this so easy.
+Hopefully, this is improved in the future™.
