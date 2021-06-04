@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../pymtp")
+
 from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
 

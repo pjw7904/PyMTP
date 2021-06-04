@@ -3,6 +3,8 @@ Author: Peter Willis (pjw7904@rit.edu)
 Last Updated: 04/28/2021
 Desc: A basic script to test receiving an MTP frame. Use in conjunction with "mtpSendTest.py" for basic testing.
 '''
+import sys
+sys.path.append("../pymtp")
 
 from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers

@@ -4,6 +4,9 @@ Last Updated: 04/28/2021
 Desc: A basic script to test building and sending a frame which includes an MTP header with path information (MTP advertisement).
       The associated "mtpRecvTest.py" can be used as a target for this frame to make sure it transfer over a network correctly.
 '''
+import sys
+sys.path.append("../pymtp")
+
 from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
 import sys # for command-line input
