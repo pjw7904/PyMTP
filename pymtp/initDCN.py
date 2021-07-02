@@ -100,7 +100,7 @@ def spineNodeProcess():
     VIDTable = {}
 
     # Await VID information
-    sniff(iface=intList, filter=MACFilter, monitor=True, prn=leafResponse(VIDTable))
+    sniff(iface=intList, filter=MACFilter, monitor=True, prn=spineResponse(VIDTable))
 
     return
 
@@ -113,12 +113,12 @@ def leafResponse(CPVIDTable, startingVID):
                 CPVIDTable[receivedFrame.sniffed_on] = receivedFrame[MTP].paths[0].path + "." + receivedFrame.sniffed_on.strip("eth")
                 print(CPVIDTable)
 
-        return handleFrame
-    return
+    return handleFrame
 
 
 def spineResponse(VIDTable):
     def handleFrame(receivedFrame):
+        print("hit")
         if(MTP in receivedFrame):
             print("hit")
             if(receivedFrame[MTP].type == 3 and MTP_Path in receivedFrame):
@@ -130,8 +130,7 @@ def spineResponse(VIDTable):
                 sendMTPFrame(receivedFrame, receivedFrame.sniffed_on)
                 print(VIDTable)
 
-        return handleFrame
-    return
+    return handleFrame
 
 
 if __name__ == "__main__":
