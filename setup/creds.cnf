@@ -11,12 +11,12 @@ OSVersion: 18.04
 [Local Utilities]
 RSPEC:                    C:/Users/peter/Desktop/Research/RSPECs/Current_RSPEC.xml
 privateKey:               C:/Users/peter/.ssh/id_geni_ssh_rsa
-localWorkingDirectory:    C:/Users/peter/Desktop/Research/PyMTP
+localWorkingDirectory:    C:/Users/peter/Desktop/Research/MTPy
 trafficGeneratorLocation: C:/Users/peter/Desktop/MTP_RSTP_Test_Stuff/Protocol_Testing_Workspace/TrafficGenerator.py
 endnodeInfoLocation:      C:/Users/peter/Desktop/MTP_RSTP_Test_Stuff/Protocol_Testing_Workspace/addrInfo.cnf
 
 [MTP Utilities]
-localCodeDirectory:     C:/Users/peter/Desktop/Research/PyMTP/pymtp
+localCodeDirectory:     C:/Users/peter/Desktop/Research/MTPy/pymtp
 rootRedundancy:         false
 includeVLANs:           false
 endNodesInTopology:     true

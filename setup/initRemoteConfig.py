@@ -26,6 +26,8 @@ def main():
 
     print("\n+---------Number of Nodes: {0}--------+".format(len(GENIDict)))
     for node in GENIDict:
+        print(node)
+
         if(args.code):
             uploadToGENINode(node, GENIDict, codeSource, codeDestination)
         if(args.config):
