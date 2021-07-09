@@ -8,6 +8,7 @@ from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
 import argparse # for command-line input
 import socket # To get interface information, not used for actual sockets
+import time
 
 # Set constants for communication
 BCAST_ADDR = "01:80:c2:00:00:ff" # Reserved IEEE non-forwarded multicast address
@@ -19,6 +20,7 @@ def getLocalInterfaces():
 
     interfaceList = socket.if_nameindex() # List which includes interfaces in tuples of format (int#, intName)
     filteredIntList = [int[1] for int in interfaceList if int[1] != intToSkip and int[1] != loopbackIntName] # Filter out the int# and any ints to skip over
+    print("ints: ", filteredIntList)
     return filteredIntList
 
 
@@ -27,14 +29,14 @@ def getLocalMACAddressesFilter():
 
     MACAddrs = [get_if_hwaddr(i) for i in get_if_list() if get_if_hwaddr(i) != macToSkip]
 
-    filter = "not ("
+    filter = ""
 
     for mac in MACAddrs:
-        filter += " ether src host {0} and".format(mac)
+        filter += " not ether src host {0} and".format(mac)
 
-    filter = filter.rstrip("and").strip() + " )"
+    filter = filter.rstrip("and").strip()
 
-    print("MAC filter: ", filter)
+    print("MAC filter:", filter)
 
     return filter
 
@@ -83,7 +85,7 @@ def leafNodeProcess(startingVID):
         # Define the MTP header, add the VID path, and send it
         MTPFrame = Ether(dst=BCAST_ADDR, type=0x4133)/MTP(type=3, operation=1, port=intNumber, paths=[initVID])
         sendMTPFrame(MTPFrame, interface)
-        print("sent ADVT MT_PDU out of interface {0}, which is port number {1}".format(interface, intNumber))
+
 
     # Await CPVID information
     sniff(iface=intList, filter=MACFilter, monitor=True, prn=leafResponse(CPVIDTable, startingVID))
@@ -95,6 +97,7 @@ def spineNodeProcess():
     # Get the valid interface names and MAC addresses on the node
     intList = getLocalInterfaces()
     MACFilter = getLocalMACAddressesFilter()
+    #MACFilter = "not ether src host 02:ea:ba:cf:2c:e4"
     
     # Define a VID data structure (just a dictonary for now)
     VIDTable = {}
@@ -107,10 +110,11 @@ def spineNodeProcess():
 
 def leafResponse(CPVIDTable, startingVID):
     def handleFrame(receivedFrame):
+        print("hit")
         if(MTP in receivedFrame):
             print("hit")
-            if(receivedFrame[MTP].type == 3 and MTP_Path in receivedFrame and receivedFrame[MTP].paths[0].path == startingVID):
-                CPVIDTable[receivedFrame.sniffed_on] = receivedFrame[MTP].paths[0].path + "." + receivedFrame.sniffed_on.strip("eth")
+            if(receivedFrame[MTP].type == 3 and MTP_Path in receivedFrame and receivedFrame[MTP].paths[0].path.decode() == startingVID):
+                CPVIDTable[receivedFrame.sniffed_on] = "{0}.{1}".format(receivedFrame[MTP].paths[0].path.decode(), receivedFrame.sniffed_on.strip("eth"))
                 print(CPVIDTable)
 
     return handleFrame
@@ -118,15 +122,15 @@ def leafResponse(CPVIDTable, startingVID):
 
 def spineResponse(VIDTable):
     def handleFrame(receivedFrame):
-        print("hit")
         if(MTP in receivedFrame):
-            print("hit")
             if(receivedFrame[MTP].type == 3 and MTP_Path in receivedFrame):
-                VIDTable[receivedFrame.sniffed_on] = receivedFrame[MTP].paths[0].path + "." + receivedFrame[MTP].port
+                VIDTable[receivedFrame.sniffed_on] = "{0}.{1}".format(receivedFrame[MTP].paths[0].path.decode(), receivedFrame[MTP].port)
 
                 # Update L2 data and resend back to leaf
                 receivedFrame[Ether].src = get_if_hwaddr(receivedFrame.sniffed_on)
                 receivedFrame[MTP].port = int(receivedFrame.sniffed_on.strip("eth"))
+                
+                time.sleep(5) # Just as a little test right now
                 sendMTPFrame(receivedFrame, receivedFrame.sniffed_on)
                 print(VIDTable)
 
