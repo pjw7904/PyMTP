@@ -6,19 +6,20 @@ Desc: Defining the starting process/behavior of MTP leaf switches and their init
 '''
 from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
+from socket import socket, AF_PACKET, SOCK_RAW, ntohs, if_nameindex # socket stuff
 import argparse # for command-line input
-import socket # To get interface information, not used for actual sockets
 import time
 
 # Set constants for communication
 BCAST_ADDR = "01:80:c2:00:00:ff" # Reserved IEEE non-forwarded multicast address
+ETH_TYPE_MTP = 0x4133
 
 
 def getLocalInterfaces():
     loopbackIntName = 'lo' # Ubuntu/Linux(?) loopback interface name 
     intToSkip = "eth0"
 
-    interfaceList = socket.if_nameindex() # List which includes interfaces in tuples of format (int#, intName)
+    interfaceList = if_nameindex() # List which includes interfaces in tuples of format (int#, intName)
     filteredIntList = [int[1] for int in interfaceList if int[1] != intToSkip and int[1] != loopbackIntName] # Filter out the int# and any ints to skip over
     print("ints: ", filteredIntList)
     return filteredIntList
@@ -98,12 +99,30 @@ def spineNodeProcess():
     intList = getLocalInterfaces()
     MACFilter = getLocalMACAddressesFilter()
     #MACFilter = "not ether src host 02:ea:ba:cf:2c:e4"
+
+    s = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_TYPE_MTP))
     
     # Define a VID data structure (just a dictonary for now)
     VIDTable = {}
 
     # Await VID information
-    sniff(iface=intList, filter=MACFilter, monitor=True, prn=spineResponse(VIDTable))
+    message, socketData = s.recvfrom(4096)
+    receivedFrame = Ether(message)
+    receivedPort = socketData[0]
+    
+    # NEED TO WORK ON THIS BELOW
+    VIDTable[receivedPort] = "{0}.{1}".format(receivedFrame[MTP].paths[0].path.decode(), receivedFrame[MTP].port)
+    print(VIDTable)
+
+    # Update L2 data and resend back to leaf
+    receivedFrame[Ether].src = get_if_hwaddr(receivedPort)
+    receivedFrame[MTP].port = int(receivedPort.strip("eth"))
+    
+    time.sleep(5) # Just as a little test right now
+    sendMTPFrame(receivedFrame, receivedPort)
+    # NEED TO WORK ON THIS ABOVE
+
+    #sniff(iface=intList, filter=MACFilter, monitor=True, prn=spineResponse(VIDTable))
 
     return
 
