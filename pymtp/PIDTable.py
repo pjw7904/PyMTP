@@ -5,6 +5,7 @@ Desc: Class to define the structure, logic, and behaviors of an MTP Path Identif
       For both leaves and spines.
 '''
 from collections import namedtuple
+from datetime import datetime
 
 # Table entry format for tier 1 nodes (leaves)
 EdgeEntry = namedtuple("Edge_Entry", "IPv4NetworkID IPv4NetworkMask DestLeafID EgressInt")
@@ -22,8 +23,25 @@ class PIDTable:
         self.table = []
         self.upstreamTable = []
 
-    def addParent(self):
+    def addParent(self, PID, cost, port):
+        newEntry = CoreEntry(PID, cost, port)
+        self.table.append(newEntry)
         return
 
-    def addChild(self):
+    def addChild(self, PID, port):
+        currentTime = datetime.now().time()
+        newEntry = UpstreamEntry(PID, port, currentTime)
+        self.upstreamTable.append(newEntry)
+        return
+
+    def getTables(self):
+        print("====Main Table====")
+        for entry in self.table:
+            print(entry)
+        print("==================")
+
+        print("====Upstream Table====")
+        for entry in self.upstreamTable:
+            print(entry)
+        print("======================")       
         return
