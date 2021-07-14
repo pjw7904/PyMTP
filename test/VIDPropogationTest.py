@@ -4,6 +4,9 @@ Last Updated: 06/03/2021
 Desc: A basic script to test a basic MT_VID propogation system. To be used on Mininet, GENI, 
       or any network of Scapy-installed devices. Currently DOES NOT work for Scapy 2.4.5, use 2.4.4.
 '''
+import sys
+sys.path.append("../pymtp")
+
 from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
 import argparse # for command-line input
