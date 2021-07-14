@@ -1,6 +1,6 @@
 '''
 Author: Peter Willis (pjw7904@rit.edu)
-Last Updated: 07/01/2021
+Last Updated: 07/13/2021
 Desc: Defining the starting process/behavior of MTP leaf switches and their inital communication
       with spine switches in a Clos/DCN topology. FOR USE ON GENI, ETH0 IS HARDCODED AS A CTRL PORT
 '''
@@ -76,6 +76,8 @@ def leafNodeProcess(startingVID):
     intList = getLocalInterfaces()
     MACFilter = getLocalMACAddressesFilter()
 
+    s = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_TYPE_MTP))
+
     # Define a CPVID data structure (just a dictionary for now)
     CPVIDTable = {}
 
@@ -87,9 +89,19 @@ def leafNodeProcess(startingVID):
         MTPFrame = Ether(dst=BCAST_ADDR, type=0x4133)/MTP(type=3, operation=1, port=intNumber, paths=[initVID])
         sendMTPFrame(MTPFrame, interface)
 
+    while(True):
+        # Await CPVID information
+        message, socketData = s.recvfrom(4096)
+        receivedFrame = Ether(message)
+        receivedPort = socketData[0]
 
-    # Await CPVID information
-    sniff(iface=intList, filter=MACFilter, monitor=True, prn=leafResponse(CPVIDTable, startingVID))
+        if(MTP in receivedFrame):
+            print("hit")
+            if(receivedFrame[MTP].type == 3 and MTP_Path in receivedFrame and receivedFrame[MTP].paths[0].path.decode() == startingVID):
+                CPVIDTable[receivedPort] = "{0}.{1}".format(receivedFrame[MTP].paths[0].path.decode(), receivedPort.strip("eth"))
+                print(CPVIDTable)
+        else:
+            print("not hit")
 
     return
 
@@ -98,7 +110,6 @@ def spineNodeProcess():
     # Get the valid interface names and MAC addresses on the node
     intList = getLocalInterfaces()
     MACFilter = getLocalMACAddressesFilter()
-    #MACFilter = "not ether src host 02:ea:ba:cf:2c:e4"
 
     s = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_TYPE_MTP))
     
@@ -109,8 +120,7 @@ def spineNodeProcess():
     message, socketData = s.recvfrom(4096)
     receivedFrame = Ether(message)
     receivedPort = socketData[0]
-    
-    # NEED TO WORK ON THIS BELOW
+
     VIDTable[receivedPort] = "{0}.{1}".format(receivedFrame[MTP].paths[0].path.decode(), receivedFrame[MTP].port)
     print(VIDTable)
 
@@ -118,11 +128,8 @@ def spineNodeProcess():
     receivedFrame[Ether].src = get_if_hwaddr(receivedPort)
     receivedFrame[MTP].port = int(receivedPort.strip("eth"))
     
-    time.sleep(5) # Just as a little test right now
+    #time.sleep(5) # Just as a little test right now
     sendMTPFrame(receivedFrame, receivedPort)
-    # NEED TO WORK ON THIS ABOVE
-
-    #sniff(iface=intList, filter=MACFilter, monitor=True, prn=spineResponse(VIDTable))
 
     return
 
@@ -149,7 +156,6 @@ def spineResponse(VIDTable):
                 receivedFrame[Ether].src = get_if_hwaddr(receivedFrame.sniffed_on)
                 receivedFrame[MTP].port = int(receivedFrame.sniffed_on.strip("eth"))
                 
-                time.sleep(5) # Just as a little test right now
                 sendMTPFrame(receivedFrame, receivedFrame.sniffed_on)
                 print(VIDTable)
 
