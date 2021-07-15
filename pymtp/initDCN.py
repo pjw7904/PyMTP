@@ -8,7 +8,6 @@ from scapy.all import * # import all of the default scapy library
 from mtp import MTP, MTP_Path # import MTP headers
 from socket import socket, AF_PACKET, SOCK_RAW, ntohs, if_nameindex # socket stuff
 import argparse # for command-line input
-import time
 
 # Set constants for communication
 BCAST_ADDR = "01:80:c2:00:00:ff" # Reserved IEEE non-forwarded multicast address
