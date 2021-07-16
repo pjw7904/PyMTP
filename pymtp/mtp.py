@@ -45,7 +45,8 @@ class MTP_Path(Packet):
     fields_desc=[
                   ShortField("cost", None),
                   FieldLenField("length", None, length_of="path"),
-                  StrLenField("path", NULL_PATH, length_from=lambda pkt:pkt.length)
+                  StrLenField("path", NULL_PATH, length_from=lambda pkt:pkt.length),
+                  ByteField("EOP", UNKNOWN)
                 ] 
 
     def extract_padding(self, s):
