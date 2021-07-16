@@ -27,7 +27,7 @@ def main():
     # Create a raw socket where frames can be received, only MTP Ethertype frames for now
     s = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_TYPE_MTP))
 
-    # If the node is leaf switch
+    # If the node is a leaf switch
     if(args.leaf):
         leafProcess(args.leaf, s)
     else:
@@ -39,12 +39,67 @@ def main():
 def leafProcess(leafID, recvSoc):
     # Create a DCN-MTP forwarding table for a LEAF node
     leafTable = PIDTable()
+
+    # Pre-build the MTP advt path header to send to spines who request it
+    leafIDPath = MTP_Path(cost=1, path=leafID)
+
+    '''
+    Adding IPv4 subnets on host ports to table
+    goes here
+    '''
+
+    # Loop through the switching logic until the switch is shut down
+    switchIsActive = True
+    while(switchIsActive):
+        message, socketData = recvSoc.recvfrom(RECV_BUF_SIZE) # Receive an MTP message
+        receivedFrame = Ether(message) # Parse message to Scapy formatting
+        receivedPort = socketData[0] # Determine ingress port
+
+        MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
+        if(MTPMessageType == MTP_HELLO):
+            print("Hello message received")
+        
+        elif(MTPMessageType == MTP_JOIN):
+            advtMsg = buildAdvtMsg([leafIDPath], 1, receivedPort)
+            sendMTPMsg(advtMsg, receivedPort)
+            print("Sent the following message:")
+            advtMsg.show2()
+
+        elif(MTPMessageType == MTP_ADVT):
+            print("ERROR: Join message received")
+        else:
+            print("ERROR: unknown message type")
+
+
     return
 
 
 def spineProcess(recvSoc):
     # Create a DCN-MTP forwarding table for a SPINE node
     spineTable = PIDTable()
+
+    # Get the valid interface names on the node
+    intList = getLocalInterfaces()
+
+    # Pre-build a join message to send to neighbors
+    joinMsg = buildJoinMsg()
+
+    # Ask for Path ID information from all neighbors
+    for interface in intList:
+        intNumber = int(interface.strip("eth")) # Get the int number only, no "eth" in front
+        sendMTPMsg(joinMsg, interface)
+
+    # Loop through the switching logic until the switch is shut down
+    switchIsActive = True
+    while(switchIsActive):
+        message, socketData = recvSoc.recvfrom(RECV_BUF_SIZE) # Receive an MTP message
+        receivedFrame = Ether(message) # Parse message to Scapy formatting
+        receivedPort = socketData[0] # Determine ingress port
+
+        MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
+        if(MTPMessageType == MTP_ADVT):
+            receivedFrame.show2()
+
     return
 
 
