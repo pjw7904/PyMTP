@@ -30,7 +30,7 @@ def main():
     # If the node is a leaf switch
     if(args.leaf):
         leafProcess(args.leaf, s)
-    else:
+    else: # If the node is a spine switch
         spineProcess(s)
 
     return

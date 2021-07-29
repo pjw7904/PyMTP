@@ -11,58 +11,50 @@ from scapy.fields import (      # Importing a couple of pre-made field types
     ByteField,
     ByteEnumField,
     ShortField,
-    StrField,
     StrLenField,
-    PacketListField,
-    FieldLenField,
-    ConditionalField,
-    IntField
+    FieldLenField
 )
 
 # Constants for MTP header information to give more context to default field parameters
 UNKNOWN   = 0
-ADVT_TYPE = 3
-NULL_PATH = ""
+ANCMT_TYPE = 1 # Annoucement message header type value
+DP_TYPE = 9 # Data plane header type value
 
-MTP_Types = {
+# MTP control plane header types
+MTP_CP_Types = {
     0: "Unknown",
-    1: "Hello",
-    2: "Join",
-    3: "Path Bundle Advertisement"
+    1: "Announcement"
 }
 
-MTP_Advt_Operations = {
-    0: "Unknown Operation",
-    1: "Path Additions",
-    2: "Path Deletions"
+# MTP data plane header types
+MTP_DP_Types = {
+    0: "Unknown",
+    9: "routed"
 }
 
 
-class MTP_Path(Packet):
-    name = "MTP Path Information" # The name of the protocol
+class MTP_Routed(Packet):
+    name = "Meshed Tree Protocol (data plane)"
 
     # The fields that make up the protocol header
-    fields_desc=[
-                  ShortField("cost", None),
-                  FieldLenField("length", None, length_of="path"),
-                  StrLenField("path", NULL_PATH, length_from=lambda pkt:pkt.length),
-                  ByteField("EOP", UNKNOWN)
-                ] 
+    fields_desc= [ 
+                    ByteEnumField("type", DP_TYPE, MTP_DP_Types),
+                    ShortField("srcleafID", UNKNOWN),
+                    ShortField("dstleafID", UNKNOWN)
+                 ]
 
-    def extract_padding(self, s):
+    def extract_padding(self, s): # Not sure if I even need this
         return '', s
 
 
 class MTP(Packet):
-    name = "Meshed Tree Protocol" # The name of the protocol
+    name = "Meshed Tree Protocol (control plane)" # The name of the protocol
 
     # The fields that make up the protocol header
     fields_desc= [ 
-                    ByteEnumField("type", UNKNOWN, MTP_Types),
-                    ConditionalField(ByteEnumField("operation", UNKNOWN, MTP_Advt_Operations), lambda pkt:pkt.type == ADVT_TYPE),
-                    ConditionalField(ShortField("port", UNKNOWN), lambda pkt:pkt.type == ADVT_TYPE),
-                    ConditionalField(FieldLenField("count", None, count_of="paths"), lambda pkt:pkt.type == ADVT_TYPE), # THIS CANNOT BE ZERO, IT HAS TO BE NONE TO WORK
-                    ConditionalField(PacketListField("paths", [], MTP_Path, count_from=lambda pkt:pkt.count), lambda pkt:pkt.type == ADVT_TYPE)
+                    ByteEnumField("type", UNKNOWN, MTP_CP_Types),
+                    ShortField("leafID", UNKNOWN),
+                    ShortField("spineID", UNKNOWN)
                  ]
 
 bind_layers(Ether, MTP, type=0x4133)
