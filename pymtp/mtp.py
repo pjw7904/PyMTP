@@ -7,12 +7,13 @@ Desc: The protocol header for the Meshed Tree Protocol (MTP), which is the contr
 
 from scapy.packet import bind_layers, Packet # Importing the super-class of all Scapy protocol headers
 from scapy.layers.l2 import Ether # Importing the Ethernet II header for binding to the MTP header
+from scapy.layers.inet import IP, UDP
 from scapy.fields import (      # Importing a couple of pre-made field types
-    ByteField,
     ByteEnumField,
     ShortField,
-    StrLenField,
-    FieldLenField
+    ConditionalField,
+    SourceMACField,
+    LongField
 )
 
 # Constants for MTP header information to give more context to default field parameters
@@ -21,42 +22,34 @@ ANCMT_TYPE = 1 # Annoucement message header type value
 DP_TYPE = 9 # Data plane header type value
 
 # MTP control plane header types
-MTP_CP_Types = {
+MTP_Types = {
     0: "Unknown",
-    1: "Announcement"
-}
-
-# MTP data plane header types
-MTP_DP_Types = {
-    0: "Unknown",
+    1: "Announcement",
     9: "routed"
 }
 
+class TEST(Packet):
+    name = "Client Traffic Generator Protocol"
 
-class MTP_Routed(Packet):
-    name = "Meshed Tree Protocol (data plane)"
-
-    # The fields that make up the protocol header
-    fields_desc= [ 
-                    ByteEnumField("type", DP_TYPE, MTP_DP_Types),
-                    ShortField("srcleafID", UNKNOWN),
-                    ShortField("dstleafID", UNKNOWN)
-                 ]
-
-    def extract_padding(self, s): # Not sure if I even need this
-        return '', s
+    fields_desc = [
+         SourceMACField("src"),
+         LongField("SeqNum", UNKNOWN)
+    ]
 
 
 class MTP(Packet):
-    name = "Meshed Tree Protocol (control plane)" # The name of the protocol
+    name = "Meshed Tree Protocol" # The name of the protocol
 
     # The fields that make up the protocol header
     fields_desc= [ 
-                    ByteEnumField("type", UNKNOWN, MTP_CP_Types),
-                    ShortField("leafID", UNKNOWN),
-                    ShortField("spineID", UNKNOWN)
+                    ByteEnumField("type", UNKNOWN, MTP_Types),
+                    ConditionalField(ShortField("leafID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(ShortField("spineID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(ShortField("srcleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE),
+                    ConditionalField(ShortField("dstleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE)
                  ]
 
+# Bind encapsulated layers together by a given value, otherwise Scapy doesn't know what is encaped
 bind_layers(Ether, MTP, type=0x4133)
-bind_layers(MTP, MTP_Path, type=ADVT_TYPE)
-bind_layers(MTP_Path, MTP_Path)
+bind_layers(MTP, IP, type=9)
+bind_layers(UDP, TEST, dport=28)
