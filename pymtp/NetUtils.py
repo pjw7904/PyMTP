@@ -13,7 +13,7 @@ def getLocalInterfaces():
 
     interfaceList = if_nameindex() # List which includes interfaces in tuples of format (int#, intName)
     filteredIntList = [int[1] for int in interfaceList if int[1] != intToSkip and int[1] != loopbackIntName] # Filter out the int# and any ints to skip over
-    print("ints: ", filteredIntList)
+    
     return filteredIntList
 
 

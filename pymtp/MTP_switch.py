@@ -9,6 +9,7 @@ from NetUtils import * # Local network configuration information
 from socket import socket, AF_PACKET, SOCK_RAW, ntohs # Build raw sockets
 from PIDTable import PIDTable # Insert and access DCN-MTP forwarding table
 import argparse # Command-line input
+import netifaces as ni
 
 
 def parseArgs():
@@ -36,40 +37,37 @@ def main():
     return
 
 
-def leafProcess(leafID, recvSoc):
+def leafProcess(hostInt, recvSoc):
     # Create a DCN-MTP forwarding table for a LEAF node
     leafTable = PIDTable()
 
-    # Pre-build the MTP advt path header to send to spines who request it
-    leafIDPath = MTP_Path(cost=1, path=leafID)
+    # Get the valid interface names on the node
+    intList = getLocalInterfaces()
+    intList.remove(hostInt) # We don't want to look at this right now, just spine ints
+    print("spine ints: ", intList)
 
-    '''
-    Adding IPv4 subnets on host ports to table
-    goes here
-    '''
+    # Determine LeafID from the host interface
+    leafID = ni.ifaddresses(hostInt)[ni.AF_INET][0]['addr'].split(".")[2]
+    print("leaf ID", leafID)
 
-    # Loop through the switching logic until the switch is shut down
-    switchIsActive = True
-    while(switchIsActive):
+    # Send Leaf Annoucement messages to each spine
+    for int in intList:
+        ancmtMsg = buildAnnouncementMsg(leafID, int)
+        sendMTPMsg(ancmtMsg, int)
+
+    # Get aquainted with every spine node before continuing on
+    while(intList):
         message, socketData = recvSoc.recvfrom(RECV_BUF_SIZE) # Receive an MTP message
         receivedFrame = Ether(message) # Parse message to Scapy formatting
         receivedPort = socketData[0] # Determine ingress port
 
         MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
-        if(MTPMessageType == MTP_HELLO):
-            print("Hello message received")
-        
-        elif(MTPMessageType == MTP_JOIN):
-            advtMsg = buildAdvtMsg([leafIDPath], 1, receivedPort)
-            sendMTPMsg(advtMsg, receivedPort)
-            print("Sent the following message:")
-            advtMsg.show2()
-
-        elif(MTPMessageType == MTP_ADVT):
-            print("ERROR: Join message received")
+        if(MTPMessageType == MTP_ANNOUNCEMENT):
+            PID = "{0}.{1}".format(receivedFrame[MTP].leafID.decode(), receivedFrame[MTP].spineID.decode())
+            leafTable.addChild(PID, receivedPort)
+            leafTable.getTables()
         else:
             print("ERROR: unknown message type")
-
 
     return
 
@@ -78,16 +76,9 @@ def spineProcess(recvSoc):
     # Create a DCN-MTP forwarding table for a SPINE node
     spineTable = PIDTable()
 
-    # Get the valid interface names on the node
-    intList = getLocalInterfaces()
-
     # Pre-build a join message to send to neighbors
     joinMsg = buildJoinMsg()
 
-    # Ask for Path ID information from all neighbors
-    for interface in intList:
-        intNumber = int(interface.strip("eth")) # Get the int number only, no "eth" in front
-        sendMTPMsg(joinMsg, interface)
 
     # Loop through the switching logic until the switch is shut down
     switchIsActive = True
@@ -97,8 +88,11 @@ def spineProcess(recvSoc):
         receivedPort = socketData[0] # Determine ingress port
 
         MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
-        if(MTPMessageType == MTP_ADVT):
+        if(MTPMessageType == MTP_ANNOUNCEMENT):
             receivedFrame.show2()
+            PID = "{0}.{1}".format(receivedFrame[MTP].leafID.decode(), receivedFrame[MTP].spineID.decode())
+            spineTable.addParent(PID, 1, receivedPort) # Cost of one (second argument)
+            spineTable.getTables()
 
     return
 
