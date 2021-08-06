@@ -6,13 +6,12 @@ Desc: The protocol header for the Meshed Tree Protocol (MTP), which is the contr
 '''
 
 from scapy.packet import bind_layers, Packet # Importing the super-class of all Scapy protocol headers
-from scapy.layers.l2 import Ether # Importing the Ethernet II header for binding to the MTP header
+from scapy.layers.l2 import Ether, SourceMACField # Importing Ethernet II header and MAC field
 from scapy.layers.inet import IP, UDP
 from scapy.fields import (      # Importing a couple of pre-made field types
     ByteEnumField,
     ShortField,
     ConditionalField,
-    SourceMACField,
     LongField
 )
 
@@ -28,12 +27,13 @@ MTP_Types = {
     9: "routed"
 }
 
+
 class TEST(Packet):
     name = "Client Traffic Generator Protocol"
 
     fields_desc = [
          SourceMACField("src"),
-         LongField("SeqNum", UNKNOWN)
+         LongField("seqnum", UNKNOWN)
     ]
 
 
