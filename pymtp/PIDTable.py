@@ -11,7 +11,7 @@ from datetime import datetime
 EdgeEntry = namedtuple("Edge_Entry", "IPv4NetworkID IPv4NetworkMask DestLeafID EgressInt")
 
 # Table entry format for tier 2+ nodes (spines)
-CoreEntry = namedtuple("Core_Entry", "LeafID Cost IngressInt")
+CoreEntry = namedtuple("Core_Entry", "leafID spineID Cost intf")
 
 # Table entry format for all nodes which connect to a higher tier
 UpstreamEntry = namedtuple("Upstream_Entry", "PID EgressPort LastTimestamp")
@@ -23,8 +23,8 @@ class PIDTable:
         self.table = []
         self.upstreamTable = []
 
-    def addParent(self, PID, cost, port):
-        newEntry = CoreEntry(PID, cost, port)
+    def addParent(self, leafID, spineID, cost, port):
+        newEntry = CoreEntry(leafID, spineID, cost, port)
         self.table.append(newEntry)
         return
 
@@ -38,6 +38,8 @@ class PIDTable:
         for entry in self.table:
             if dstLeafID == entry.LeafID:
                 return entry.IngressInt
+
+        return "None"
 
     def getTables(self):
         print("====Main Table====")

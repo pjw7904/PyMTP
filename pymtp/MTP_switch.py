@@ -48,12 +48,11 @@ def leafProcess(hostInt, recvSoc):
 
     # Determine LeafID from the host interface
     leafID = ni.ifaddresses(hostInt)[ni.AF_INET][0]['addr'].split(".")[2]
-    print("leaf ID", leafID)
 
     # Send Leaf Annoucement messages to each spine
-    for int in intList:
-        ancmtMsg = buildAnnouncementMsg(leafID, int)
-        sendMTPMsg(ancmtMsg, int)
+    for intf in intList:
+        ancmtMsg = buildAnnouncementMsg(int(leafID), intf)
+        sendMTPMsg(ancmtMsg, intf)
 
     # Get aquainted with every spine node before continuing on
     while(intList):
@@ -63,11 +62,26 @@ def leafProcess(hostInt, recvSoc):
 
         MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
         if(MTPMessageType == MTP_ANNOUNCEMENT):
-            PID = "{0}.{1}".format(receivedFrame[MTP].leafID.decode(), receivedFrame[MTP].spineID.decode())
+            PID = "{0}.{1}".format(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID)
             leafTable.addChild(PID, receivedPort)
             leafTable.getTables()
+            intList.remove(receivedPort)
         else:
             print("ERROR: unknown message type")
+
+    recvSoc.close()
+    clientSoc = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_P_IP))
+    
+    print("looking for client traffic")
+    while(True):
+        message, socketData = clientSoc.recvfrom(RECV_BUF_SIZE)
+        receivedPort = socketData[0]
+
+        if(receivedPort == "eth0"):
+            continue
+        
+        receivedFrame = Ether(message)
+        receivedFrame.show2()
 
     return
 
@@ -75,10 +89,6 @@ def leafProcess(hostInt, recvSoc):
 def spineProcess(recvSoc):
     # Create a DCN-MTP forwarding table for a SPINE node
     spineTable = PIDTable()
-
-    # Pre-build a join message to send to neighbors
-    joinMsg = buildJoinMsg()
-
 
     # Loop through the switching logic until the switch is shut down
     switchIsActive = True
@@ -89,10 +99,22 @@ def spineProcess(recvSoc):
 
         MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
         if(MTPMessageType == MTP_ANNOUNCEMENT):
-            receivedFrame.show2()
-            PID = "{0}.{1}".format(receivedFrame[MTP].leafID.decode(), receivedFrame[MTP].spineID.decode())
-            spineTable.addParent(PID, 1, receivedPort) # Cost of one (second argument)
+            '''
+            TODO: Add check if leaf sends another ancmt with same OR new info to replace what is there.
+                  Or, just make default entries for each port and then update them for whats incoming.
+            '''
+            # Add leaf annoucement information as a parent to MTP table (cost of 1 hard-coded for now)
+            spineTable.addParent(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID, 1, receivedPort)
             spineTable.getTables()
+
+            # Send the ancmt back as a confirmation
+            response = buildAnnoucementResponseMsg(receivedFrame, receivedPort)
+            sendMTPMsg(response, receivedPort)
+
+        elif(MTPMessageType == MTP_ROUTED):
+            outIntf = spineTable.getEgressPort(receivedFrame[MTP].dstleafID)
+            if(outIntf != "None"):
+                routeMsg(receivedFrame, outIntf)
 
     return
 
