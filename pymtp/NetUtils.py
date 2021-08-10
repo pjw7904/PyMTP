@@ -1,12 +1,13 @@
 '''
 Author: Peter Willis (pjw7904@rit.edu)
-Last Updated: 07/15/2021
+Last Updated: 08/09/2021
 Desc: Misc utility functions that gather information about the local box's network configuration.
 '''
 from socket import if_nameindex # socket stuff
 from scapy.all import get_if_hwaddr, get_if_list
 from netifaces import ifaddresses, AF_LINK
 
+# Gets the names of local interfaces (ex: eth1)
 def getLocalInterfaces():
     loopbackIntName = 'lo' # Ubuntu/Linux(?) loopback interface name 
     intToSkip = "eth0"
@@ -16,10 +17,12 @@ def getLocalInterfaces():
     
     return filteredIntList
 
+# Get a MAC address from an interface name
 def getMACAddress(intf):
     macAddress = ifaddresses(intf)[AF_LINK][0]['addr']
     return macAddress
 
+# Crafts the appropriate Berkley Packet Filter (BPF) string for Scapy sniffing on an MTP switch (currently not used)
 def getLocalMACAddressesFilter():
     macToSkip = "00:00:00:00:00:00"
 
