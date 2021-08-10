@@ -38,13 +38,13 @@ def main():
 
 
 def leafProcess(hostInt, recvSoc):
-    # Create a DCN-MTP forwarding table for a LEAF node
-    leafTable = PIDTable()
-
-    # Get the valid interface names on the node
+    # Get necessary interface information
     intList = getLocalInterfaces()
     intList.remove(hostInt) # We don't want to look at this right now, just spine ints
-    print("spine ints: ", intList)
+    computeSubnetMACAddr = getMACAddress(hostInt) # MAC address of the interface attached to the local IPv4 compute subnet
+
+    # Create a DCN-MTP forwarding table for a LEAF node
+    leafTable = PIDTable(len(intList))
 
     # Determine LeafID from the host interface
     leafID = ni.ifaddresses(hostInt)[ni.AF_INET][0]['addr'].split(".")[2]
@@ -70,7 +70,7 @@ def leafProcess(hostInt, recvSoc):
             print("ERROR: unknown message type")
 
     recvSoc.close()
-    clientSoc = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_P_IP))
+    clientSoc = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_P_ALL)) # Cannot just listen on IP, we need MTP-routed frames as well!
     
     print("looking for client traffic")
     while(True):
@@ -80,15 +80,51 @@ def leafProcess(hostInt, recvSoc):
         if(receivedPort == "eth0"):
             continue
         
+        # Have Scapy process and parse the frame (show it for now to test it)
         receivedFrame = Ether(message)
-        receivedFrame.show2()
+        
+        # Determine what to do with the frame based on the encapsulated type
+        if(MTP in receivedFrame and receivedFrame[MTP].type == MTP_ROUTED):
+            if(receivedFrame[MTP].dstleafID == int(leafID)):
+                print("received an MTP message going to my IPv4 subnet:")
+                receivedFrame.show2()
+
+                decapedFrame = Ether(src=computeSubnetMACAddr)/receivedFrame[IP]
+                print("sending the following de-encapsulated packet to compute node:")
+                decapedFrame.show2()
+
+                sendMTPMsg(decapedFrame, hostInt)
+
+        elif(IP in receivedFrame and receivedFrame[Ether].src != computeSubnetMACAddr):
+            print("received client frame:")
+            receivedFrame.show2()
+
+            # Figure out the interface the packet is going out of
+            sourceIP = receivedFrame[IP].src
+            destinationIP = receivedFrame[IP].dst
+            destinationLeafID = int(getLeafIDFromIPAddress(receivedFrame[IP].dst))
+            egressInt = leafTable.getEgressSpinePort(sourceIP, destinationIP)
+
+            # Craft an MTP routed message to send out of the chosen interface
+            encapedFrame = Ether(src=getMACAddress(egressInt), dst=DEST_MTP_PHY_ADDR)/MTP(type=MTP_ROUTED, srcleafID=int(leafID), dstleafID=destinationLeafID)/receivedFrame[IP]
+            print("encapsulated client frame:")
+            encapedFrame.show2()
+
+            # Send the MTP routed message out of the chosen egress interface
+            sendMTPMsg(encapedFrame, egressInt)
+
+        else:
+            print("ERROR: Ethertype not MTP or IPv4, frame dropped")
 
     return
 
 
 def spineProcess(recvSoc):
+    # Get the valid interface names on the node
+    intList = getLocalInterfaces()
+
     # Create a DCN-MTP forwarding table for a SPINE node
-    spineTable = PIDTable()
+    spineTable = PIDTable(len(intList))
 
     # Loop through the switching logic until the switch is shut down
     switchIsActive = True
@@ -112,9 +148,14 @@ def spineProcess(recvSoc):
             sendMTPMsg(response, receivedPort)
 
         elif(MTPMessageType == MTP_ROUTED):
-            outIntf = spineTable.getEgressPort(receivedFrame[MTP].dstleafID)
+            print("received MTP-encaped message:")
+            receivedFrame.show2()
+            outIntf = spineTable.getEgressLeafPort(receivedFrame[MTP].dstleafID)
             if(outIntf != "None"):
+                print("message routed out of port", outIntf)
                 routeMsg(receivedFrame, outIntf)
+            else:
+                print("Error: No route to destination leaf")
 
     return
 

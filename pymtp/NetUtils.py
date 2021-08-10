@@ -5,7 +5,7 @@ Desc: Misc utility functions that gather information about the local box's netwo
 '''
 from socket import if_nameindex # socket stuff
 from scapy.all import get_if_hwaddr, get_if_list
-
+from netifaces import ifaddresses, AF_LINK
 
 def getLocalInterfaces():
     loopbackIntName = 'lo' # Ubuntu/Linux(?) loopback interface name 
@@ -16,6 +16,9 @@ def getLocalInterfaces():
     
     return filteredIntList
 
+def getMACAddress(intf):
+    macAddress = ifaddresses(intf)[AF_LINK][0]['addr']
+    return macAddress
 
 def getLocalMACAddressesFilter():
     macToSkip = "00:00:00:00:00:00"

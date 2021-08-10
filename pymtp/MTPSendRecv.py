@@ -13,6 +13,7 @@ DEST_MTP_PHY_ADDR = "01:80:c2:00:00:ff" # Reserved IEEE non-forwarded multicast 
 RECV_BUF_SIZE = 4096 # Take in 4096 bytes for each socket recv call
 ETH_TYPE_MTP = 0x4133 # Ethertype for MTP-in-Ethernet encapsulation
 ETH_P_IP = 0x800 # Ethertype for IPv4
+ETH_P_ALL = 0x0003
 
 # MTP message types
 MTP_ANNOUNCEMENT = 1
@@ -45,3 +46,9 @@ def sendMTPMsg(MT_PKT, outInt):
     sendp(MT_PKT, iface=outInt, count=1, verbose=False)
 
     return
+
+
+def getLeafIDFromIPAddress(ipv4Addr):
+    leafID = ipv4Addr.split(".")[2]
+
+    return leafID
