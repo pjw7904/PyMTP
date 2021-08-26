@@ -12,7 +12,9 @@ from scapy.fields import (      # Importing a couple of pre-made field types
     ByteEnumField,
     ShortField,
     ConditionalField,
-    LongField
+    LongField,
+    FieldLenField,
+    FieldListField
 )
 
 # Constants for MTP header information to give more context to default field parameters
@@ -44,7 +46,8 @@ class MTP(Packet):
     fields_desc= [ 
                     ByteEnumField("type", UNKNOWN, MTP_Types),
                     ConditionalField(ShortField("leafID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
-                    ConditionalField(ShortField("spineID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(FieldLenField("tiers", None, count_of="spineID"), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(FieldListField("spineID", [], ShortField("id", UNKNOWN), count_from=lambda pkt:pkt.tiers), lambda pkt:pkt.type == ANCMT_TYPE),
                     ConditionalField(ShortField("srcleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE),
                     ConditionalField(ShortField("dstleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE)
                  ]
