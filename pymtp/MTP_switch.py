@@ -48,7 +48,7 @@ def leafProcess(hostInt, recvSoc):
     computeSubnetMACAddr = getMACAddress(hostInt) # MAC address of the interface attached to the local IPv4 compute subnet
 
     # Create a DCN-MTP forwarding table for a LEAF node
-    leafTable = PIDTable(len(spineIntList))
+    leafTable = PIDTable()
 
     # Determine the LeafID from the host interface
     leafID = ni.ifaddresses(hostInt)[ni.AF_INET][0]['addr'].split(".")[2]
@@ -68,7 +68,7 @@ def leafProcess(hostInt, recvSoc):
         # If a spine responds with an announcement response
         if(MTPMessageType == MTP_ANNOUNCEMENT):
             # Add the spine as a child to the PID table and print the updated table
-            PID = "{0}.{1}".format(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID)
+            PID = "{0}.{1}".format(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID[0])
             leafTable.addChild(PID, receivedPort)
             leafTable.getTables()
             spineIntList.remove(receivedPort) # Remove the interface attached to the spine node from the list, as we have heard from it and have a record now in the table
@@ -136,7 +136,7 @@ def spineProcess(recvSoc):
     intList = getLocalInterfaces()
 
     # Create a DCN-MTP forwarding table for a SPINE node
-    spineTable = PIDTable(len(intList))
+    spineTable = PIDTable()
 
     # Loop through the switching logic until the switch is shut down (cntrl + c)
     switchIsActive = True
@@ -149,7 +149,7 @@ def spineProcess(recvSoc):
         # If a leaf sends an announcement response
         if(MTPMessageType == MTP_ANNOUNCEMENT):
             # Add leaf annoucement information as a parent to MTP table (cost of 1 hard-coded for now)
-            spineTable.addParent(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID, 1, receivedPort)
+            spineTable.addParent(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID[0], 1, receivedPort)
             spineTable.getTables()
 
             # Send the annoucement back as a confirmation

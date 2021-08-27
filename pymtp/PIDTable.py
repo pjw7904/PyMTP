@@ -18,10 +18,11 @@ UpstreamEntry = namedtuple("Upstream_Entry", "PID EgressPort LastTimestamp")
 
 class PIDTable:
     # Constructor, initalize the table itself (a list)
-    def __init__(self, numOfInts):
+    def __init__(self):
         self.table = []
         self.upstreamTable = []
-        self.numInts = numOfInts
+        self.intfDict = {}
+        self.portKey = 0
 
     # Adds a parent for the node, which is closer to the compute nodes/subnets (leaf parent for a spine)
     def addParent(self, leafID, spineID, cost, port):
@@ -34,6 +35,9 @@ class PIDTable:
         currentTime = datetime.now().time()
         newEntry = UpstreamEntry(PID, port, currentTime)
         self.upstreamTable.append(newEntry)
+        self.intfDict[self.portKey] = port
+        self.portKey += 1
+        print(self.intfDict)
         return
 
     # Determines which interface/leaf node to send a packet to, utilizes MTP routed header information
@@ -50,8 +54,9 @@ class PIDTable:
 
         # Input key into the hashing algorithm and get egress interface (uses built-in Python 3 hashing algorithm, whatever it may be)
         IPHash = hash(key)
-        egressPortNum = (IPHash % self.numInts) + 1 # +1 to get x in ethx and offset the 0 it starts at
-        egressPortName = "eth{0}".format(egressPortNum)
+        egressPortNum = (IPHash % self.portKey) # To get X in ethX
+        egressPortName = self.intfDict[egressPortNum]
+        print("hash result: {0}".format(egressPortName))
 
         return egressPortName
 

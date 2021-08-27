@@ -46,8 +46,8 @@ class MTP(Packet):
     fields_desc= [ 
                     ByteEnumField("type", UNKNOWN, MTP_Types),
                     ConditionalField(ShortField("leafID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
-                    ConditionalField(FieldLenField("tiers", None, count_of="spineID"), lambda pkt:pkt.type == ANCMT_TYPE),
-                    ConditionalField(FieldListField("spineID", [], ShortField("id", UNKNOWN), count_from=lambda pkt:pkt.tiers), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(FieldLenField("tierIDCount", None, count_of="spineID"), lambda pkt:pkt.type == ANCMT_TYPE),
+                    ConditionalField(FieldListField("spineID", [], ShortField("id", UNKNOWN), count_from=lambda pkt:pkt.tierIDCount), lambda pkt:pkt.type == ANCMT_TYPE),
                     ConditionalField(ShortField("srcleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE),
                     ConditionalField(ShortField("dstleafID", UNKNOWN), lambda pkt:pkt.type == DP_TYPE)
                  ]
