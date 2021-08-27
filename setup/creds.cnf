@@ -17,11 +17,9 @@ endnodeInfoLocation:      C:/Users/peter/Desktop/MTP_RSTP_Test_Stuff/Protocol_Te
 
 [MTP Utilities]
 localCodeDirectory:     C:/Users/peter/Desktop/Research/MTPy/pymtp
-rootRedundancy:         false
-includeVLANs:           false
+localTestDirectory:     C:/Users/peter/Desktop/Research/MTPy/test
+localSetupDirectory:    C:/Users/peter/Desktop/Research/MTPy/setup
 endNodesInTopology:     true
 endNodeTrafficSource:   endnode-2
 endNodeTrafficDest:		endnode-9
 trafficToSend:          MTP_bcast
-primaryRootNode:        node-0
-secondaryRootNode:      node-1
