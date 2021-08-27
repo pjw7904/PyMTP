@@ -1,14 +1,14 @@
 '''
 Author: Peter Willis (pjw7904@rit.edu)
-Last Updated: 04/28/2021
-Desc: A basic script to test building and sending a frame which includes an MTP header with path information (MTP advertisement).
+Last Updated: 08/27/2021
+Desc: A basic script to test building and sending a frame which includes an MTP header with path information.
       The associated "mtpRecvTest.py" can be used as a target for this frame to make sure it transfer over a network correctly.
 '''
 import sys
 sys.path.append("../pymtp")
 
 from scapy.all import * # import all of the default scapy library
-from mtp import MTP, MTP_Path # import MTP headers
+from mtp import MTP # import MTP headers
 import sys # for command-line input
 
 
@@ -19,16 +19,12 @@ def main():
     # Get the destination (Eth II) via a command-line argument
     destMAC = sys.argv[2] 
 
-    #Build a fake/test path bundle, which, when sent over the network, will be comprised of a collection of MTP_Path headers each describing a single path in the bundle
-    path1 = MTP_Path(cost=2, path="1.2.3")
-    path2 = MTP_Path(cost=3, path="1.1.2.3")
-    path3 = MTP_Path(cost=4, path="1.2.4.3")
-
-    # Group the individual path headers into a list
-    pathBundlePathHeaders = [path1, path2, path3]
+    #Build a fake list of tier IDs (egress ports)
+    spineIDs = [5, 1, 7]
 
     # Build the MTP header, which will be a path bundle advertisement message encapsulated in an Ethernet II header with ethertype 0x4133. Note that the paths are added as sub-headers to the normal MTP header.
-    MTPFrame = Ether(dst=destMAC, type=0x4133)/MTP(type=3, operation=1, port=5, paths=pathBundlePathHeaders)
+    MTPFrame = Ether(dst=destMAC, type=0x4133)/MTP(type=1, leafID=1, spineID=spineIDs)
+    MTPFrame.show2()
 
     # Send the frame
     sendp(MTPFrame, iface=outIntf, count=1, verbose=False)

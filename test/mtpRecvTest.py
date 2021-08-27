@@ -7,8 +7,20 @@ import sys
 sys.path.append("../pymtp")
 
 from scapy.all import * # import all of the default scapy library
-from mtp import MTP, MTP_Path # import MTP headers
+from mtp import MTP # import MTP headers
 import sys # for command-line input
+
+def showContent(frame):
+    if(MTP not in frame):
+        print("MTP header not found in frame.")
+        frame.summary()
+    else:
+        frame.show2()
+
+        print("Spine IDs:")
+        if(frame[MTP].type == 1):
+            for id in frame[MTP].spineID:
+                print(id)
 
 
 def main():
@@ -20,7 +32,7 @@ def main():
 
     # Record incoming frames and display their content
     if output == "console":
-        sniff(iface=inIntf, prn=lambda x: x.show())
+        sniff(iface=inIntf, prn=showContent)
     elif output == "pcap":
         mtpPcap = sniff(iface=inIntf)
         wrpcap('MtpTestFrames.pcap', mtpPcap)
