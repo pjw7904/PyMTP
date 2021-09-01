@@ -23,8 +23,8 @@ MTP_ROUTED = 9
 # Builds a leaf announcement message, which is sent to spines to notifiy them of the leaf's existence
 def buildAnnouncementMsg(leafID, outInt):
     intNumber = int(outInt.strip("eth")) # Get the int number only, no "eth" in front
-    ancmtMsg = Ether(dst=DEST_MTP_PHY_ADDR, type=ETH_TYPE_MTP)/MTP(type=MTP_ANNOUNCEMENT, leafID=leafID, spineID=intNumber)
-    
+    ancmtMsg = Ether(dst=DEST_MTP_PHY_ADDR, src=get_if_hwaddr(outInt), type=ETH_TYPE_MTP)/MTP(type=MTP_ANNOUNCEMENT, leafID=leafID, spineID=intNumber)
+
     return ancmtMsg
 
 # Builds a leaf announcement reply, which is sent from spines to leaves to confirm their announcement

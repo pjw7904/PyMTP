@@ -35,6 +35,4 @@ def getLocalMACAddressesFilter():
 
     filter = filter.rstrip("and").strip()
 
-    print("MAC filter:", filter)
-
     return filter

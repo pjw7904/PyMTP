@@ -37,7 +37,6 @@ class PIDTable:
         self.upstreamTable.append(newEntry)
         self.intfDict[self.portKey] = port
         self.portKey += 1
-        print(self.intfDict)
         return
 
     # Determines which interface/leaf node to send a packet to, utilizes MTP routed header information
@@ -56,7 +55,6 @@ class PIDTable:
         IPHash = hash(key)
         egressPortNum = (IPHash % self.portKey) # To get X in ethX
         egressPortName = self.intfDict[egressPortNum]
-        print("hash result: {0}".format(egressPortName))
 
         return egressPortName
 
