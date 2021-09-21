@@ -1,6 +1,6 @@
 '''
 Author: Peter Willis (pjw7904@rit.edu)
-Last Updated: 08/09/2021
+Last Updated: 09/21/2021
 Desc: The driver/main logic for a Data Center Network based Meshed Tree Protocol (DCN-MTP)
       implementation. This results in a basic, python-based software switch that utilies DCN-MTP.
 '''
@@ -8,9 +8,10 @@ from MTPSendRecv import * # Transmit, receive, build, and parse MTP messages
 from NetUtils import * # Local network configuration information
 from socket import socket, AF_PACKET, SOCK_RAW, ntohs # Build raw sockets
 from PIDTable import PIDTable # Insert and access DCN-MTP forwarding table
-from signal import signal, SIGINT
-from sys import exit
+from signal import signal, SIGINT # Signal associated with a control + c exit of program
+from sys import exit # Graceful exit upon SIGINT signal (cntrl+c)
 import argparse # Command-line input
+import logging # Basic level-based logging
 import netifaces as ni # Local network/interface information
 
 
@@ -25,6 +26,7 @@ def parseArgs():
     # Read in command-line arguments for start-up switch configuration, if necessary
     argParser = argparse.ArgumentParser(description = "DCN-MTP Software Switch")
     argParser.add_argument('--leaf') # ARG: starting VID
+    argParser.add_argument("-l", "--log", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help="Set the logging level (default: %(default)s)")
     args = argParser.parse_args()
 
     return args # return the results of the given CLI input
@@ -35,8 +37,11 @@ def main():
     # Connect signals to the local handler (for control + c termination)
     signal(SIGINT, handler)
 
-    # Read in command-line arguments to determine if node is a leaf or spine node
+    # Read in command-line arguments
     args = parseArgs()
+
+    # Determine the level of logging that will be included when running
+    logging.basicConfig(level=getattr(logging, args.logLevel))
 
     # Create a raw socket where frames can be received, only MTP Ethertype frames for now to get things going
     s = socket(AF_PACKET, SOCK_RAW, ntohs(ETH_TYPE_MTP))
@@ -76,10 +81,10 @@ def leafProcess(hostInt):
         spineIntfMACAddrs.append(getMACAddress(intf))
         ancmtMsg = buildAnnouncementMsg(int(leafID), intf)
         sendMTPMsg(ancmtMsg, intf)
-        print("\n[sent - {0}] Announcing myself to potential spine".format(intf))
+        logging.info("\n[sent - {0}] Announcing myself to potential spine".format(intf))
 
     # Loop through the switching logic until the switch is shut down (cntrl + c)
-    print("\n~Begin listening and responding~")
+    logging.info("\n~Begin listening and responding~")
     while(True):
         message, socketData = leafSoc.recvfrom(RECV_BUF_SIZE) # Receive a frame
         receivedPort = socketData[0] # Determine the interface the frame came from
@@ -97,22 +102,26 @@ def leafProcess(hostInt):
                 # Add the spine as a child to the PID table and print the updated table
                 PID = "{0}.{1}".format(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID[0])
                 leafTable.addChild(PID, receivedPort)
-                print("\n[recv - {0}] Announcement confirmation from spine {1}, adding child".format(receivedPort, PID))
-                leafTable.getTables()
+                logging.info("\n[recv - {0}] Announcement confirmation from spine {1}, adding child".format(receivedPort, PID))
+                logging.debug("\n" + receivedFrame.show2(dump=True))
+                logging.info(leafTable.getTables())
 
             elif(receivedFrame[MTP].type == MTP_ROUTED and receivedFrame[MTP].dstleafID == int(leafID)):
-                print("\n[recv - {0}] Received MTP-encaped msg for the local leaf ID:".format(receivedPort))
-                print(receivedFrame.summary())
+                logging.info("\n[recv - {0}] Received MTP-encaped msg for the local leaf ID:".format(receivedPort))
+                logging.info(receivedFrame.summary())
+                logging.debug("\n" + receivedFrame.show2(dump=True))
 
                 # Deencapsulate the MTP header and send it to the local compute node
                 decapedFrame = Ether(src=computeSubnetMACAddr)/receivedFrame[IP]
                 sendMTPMsg(decapedFrame, hostInt)
-                print("[sent - {0}] Msg sent to local compute node:".format(hostInt))
-                print(decapedFrame.summary())
+                logging.info("[sent - {0}] Msg sent to local compute node".format(hostInt))
+                logging.info(decapedFrame.summary())
+                logging.debug("\n" + decapedFrame.show2(dump=True))
 
         elif(IP in receivedFrame and receivedFrame[Ether].src != computeSubnetMACAddr): # If the frame contains an IPv4 header (packet sent by compute node attached to leaf)
-            print("\n[recv - {0}] Received frame from a local compute node:".format(receivedPort))
-            print(receivedFrame.summary())
+            logging.info("\n[recv - {0}] Received frame from a local compute node:".format(receivedPort))
+            logging.info(receivedFrame.summary())
+            logging.debug("\n" + receivedFrame.show2(dump=True))
 
             # Determine what the destination leaf ID is and which spine it is being sent to (flows based on src + dst IPv4 address, which are hashed)
             sourceIP = receivedFrame[IP].src
@@ -125,8 +134,9 @@ def leafProcess(hostInt):
 
             # Send the MTP routed message out of the chosen egress interface/to the chosen spine node
             sendMTPMsg(encapedFrame, egressInt)
-            print("[sent - {0}] Sending MTP-encaped compute node frame to a spine:".format(egressInt))
-            print(encapedFrame.summary())
+            logging.info("[sent - {0}] Sending MTP-encaped compute node frame to a spine:".format(egressInt))
+            logging.info(encapedFrame.summary())
+            logging.debug("\n" + encapedFrame.show2(dump=True))
 
         '''else: # If the frame does not contain an MTP routed header or an IPv4 header, we're ignoring for now
             print("\nERROR: Ethertype not MTP or IPv4, frame dropped")'''
@@ -150,31 +160,36 @@ def spineProcess(recvSoc):
         receivedPort = socketData[0] # Determine ingress port
 
         MTPMessageType = receivedFrame[MTP].type # Determine the type of MTP message received
+
         # If a leaf sends an announcement response
         if(MTPMessageType == MTP_ANNOUNCEMENT):
             # Add leaf annoucement information as a parent to MTP table (cost of 1 hard-coded for now)
             spineTable.addParent(receivedFrame[MTP].leafID, receivedFrame[MTP].spineID[0], 1, receivedPort)
-            print("\n[recv - {0}] Receieved an announcement from a leaf, adding parent".format(receivedPort))
-            spineTable.getTables()
+            logging.info("\n[recv - {0}] Receieved an announcement from a leaf, adding parent".format(receivedPort))
+            logging.info(receivedFrame.summary())
+            logging.debug("\n" + receivedFrame.show2(dump=True))
+            logging.info(spineTable.getTables())
 
             # Send the annoucement back as a confirmation
             response = buildAnnoucementResponseMsg(receivedFrame, receivedPort)
             sendMTPMsg(response, receivedPort)
-            print("[sent - {0}] Announcing myself back to the leaf".format(receivedPort))
+            logging.info("[sent - {0}] Announcing myself back to the leaf".format(receivedPort))
+            logging.debug("\n" + response.show2(dump=True))
 
         # If a leaf sends a frame with a routed MTP header
         elif(MTPMessageType == MTP_ROUTED):
             # Print out the frame to see what is inside
-            print("\n[recv - {0}] Received an MTP-encaped msg:".format(receivedPort))
-            print(receivedFrame.summary())
-            
+            logging.info("\n[recv - {0}] Received an MTP-encaped msg:".format(receivedPort))
+            logging.info(receivedFrame.summary())
+            logging.debug("\n" + response.show2(dump=True))
+
             # Determine the egress interface (the leaf to send it to) based on the destination leaf ID field
             outIntf = spineTable.getEgressLeafPort(receivedFrame[MTP].dstleafID)
             if(outIntf != "None"):
                 routeMsg(receivedFrame, outIntf)
-                print("\n[sent - {0}] Msg routed towards destination".format(outIntf))
+                logging.info("\n[sent - {0}] Msg routed towards destination".format(outIntf))
             else:
-                print("\nError: No route to destination leaf")
+                logging.info("\nError: No route to destination leaf")
 
     return
 

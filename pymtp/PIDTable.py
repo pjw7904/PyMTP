@@ -1,6 +1,6 @@
 '''
 Author: Peter Willis (pjw7904@rit.edu)
-Last Updated: 08/09/2021
+Last Updated: 09/21/2021
 Desc: Class to define the structure, logic, and behaviors of an MTP Path Identifier (PID) table.
       For both leaves and spines.
 '''
@@ -60,13 +60,16 @@ class PIDTable:
 
     # Prints table entries
     def getTables(self):
-        print("====Main Table====")
-        for entry in self.table:
-            print(entry)
-        print("==================")
+        tableOutput = ""
 
-        print("====Upstream Table====")
+        tableOutput += "\n====Main Table====\n"
+        for entry in self.table:
+            tableOutput += str(entry) + "\n"
+        tableOutput += "==================\n"
+
+        tableOutput += "====Upstream Table====\n"
         for entry in self.upstreamTable:
-            print(entry)
-        print("======================")       
-        return
+            tableOutput += str(entry) + "\n"
+        tableOutput += "======================\n" 
+    
+        return tableOutput
