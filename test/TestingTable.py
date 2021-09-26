@@ -2,18 +2,13 @@ import sys
 sys.path.append("../pymtp")
 
 from PIDTable import PIDTable
-from time import sleep
+from NetUtils import getLocalInterfaces
 
-test = PIDTable()
-
-test.addChild("120.1", "eth1")
-test.addChild("120.2", "eth2")
-test.addChild("120.3", "eth3")
-test.addChild("120.4", "eth4")
-
-test.addParent("120", 1, "eth1")
-test.addParent("130", 1, "eth2")
-test.addParent("140", 1, "eth3")
-test.addParent("150", 1, "eth4")
-
-test.getTables()
+test = PIDTable(getLocalInterfaces())
+# adding compute subnets
+test.addComputeSubnet("10.10.5.15", "255.255.255.0", "ethernet_0")
+test.addComputeSubnet("15.22.10.254", "255.255.255.0", "ethernet_1")
+test.addParent(15, [1,2,3], 55, "ethernet_2")
+test.addChild(15, [1,2,3], "ethernet_3")
+test.addChild(15, 1, "ethernet_4")
+print(test.getTables())
