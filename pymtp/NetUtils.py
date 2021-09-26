@@ -5,7 +5,8 @@ Desc: Misc utility functions that gather information about the local box's netwo
 '''
 from socket import if_nameindex # socket stuff
 from scapy.all import get_if_hwaddr, get_if_list
-from netifaces import ifaddresses, ip_network, AF_INET, AF_LINK
+from netifaces import ifaddresses, AF_INET, AF_LINK
+from ipaddress import ip_network
 
 # Gets the names of local interfaces (ex: eth1)
 def getLocalInterfaces():
