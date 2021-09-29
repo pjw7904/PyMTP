@@ -19,18 +19,26 @@ ETH_P_ALL = 0x0003 # Receive all traffic, regardless of ethertype
 MTP_ANNOUNCEMENT = 1
 MTP_ROUTED = 9
 
+# MTP annoucement types
+ANCMT_REQ = 1
+ANCMT_RES = 2
 
 # Builds a leaf announcement message, which is sent to spines to notifiy them of the leaf's existence
-def buildAnnouncementMsg(leafID, outInt):
-    intNumber = int(outInt.strip("eth")) # Get the int number only, no "eth" in front
-    ancmtMsg = Ether(dst=DEST_MTP_PHY_ADDR, src=get_if_hwaddr(outInt), type=ETH_TYPE_MTP)/MTP(type=MTP_ANNOUNCEMENT, leafID=leafID, spineID=intNumber)
+def buildAnnouncementMsg(leafID, outInt, multipleIDs=[]):
+    spineID = [int(outInt.strip("eth"))] # Get the int number only, no "eth" in front
+    
+    if multipleIDs:
+        spineID = multipleIDs + spineID 
+
+    ancmtMsg = Ether(dst=DEST_MTP_PHY_ADDR, src=get_if_hwaddr(outInt), type=ETH_TYPE_MTP)/MTP(type=MTP_ANNOUNCEMENT, annoucementType=ANCMT_REQ, leafID=leafID, spineID=spineID)
 
     return ancmtMsg
 
 # Builds a leaf announcement reply, which is sent from spines to leaves to confirm their announcement
 def buildAnnoucementResponseMsg(msg, outInt):
     msg[Ether].src = get_if_hwaddr(outInt)
-    
+    msg[MTP].annoucementType = ANCMT_RES
+
     return msg
 
 # Updates the source MAC address for the next hop
