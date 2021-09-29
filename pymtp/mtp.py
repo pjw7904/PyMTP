@@ -29,6 +29,11 @@ MTP_Types = {
     9: "routed"
 }
 
+Annoucement_Types = {
+    0: "Unknown",
+    1: "Request",
+    2: "Response"
+}
 
 class TEST(Packet):
     name = "Client Traffic Generator Protocol"
@@ -38,13 +43,13 @@ class TEST(Packet):
          LongField("seqnum", UNKNOWN)
     ]
 
-
 class MTP(Packet):
     name = "Meshed Tree Protocol" # The name of the protocol
 
     # The fields that make up the protocol header
     fields_desc= [ 
                     ByteEnumField("type", UNKNOWN, MTP_Types),
+                    ConditionalField(ByteEnumField("annoucementType", UNKNOWN, Annoucement_Types), lambda pkt:pkt.type == ANCMT_TYPE),
                     ConditionalField(ShortField("leafID", UNKNOWN), lambda pkt:pkt.type == ANCMT_TYPE),
                     ConditionalField(FieldLenField("tierIDCount", None, count_of="spineID"), lambda pkt:pkt.type == ANCMT_TYPE),
                     ConditionalField(FieldListField("spineID", [], ShortField("id", UNKNOWN), count_from=lambda pkt:pkt.tierIDCount), lambda pkt:pkt.type == ANCMT_TYPE),
