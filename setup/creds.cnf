@@ -11,14 +11,14 @@ OSVersion: 18.04
 [Local Utilities]
 RSPEC:                    C:/Users/peter/Desktop/Research/RSPECs/Current_RSPEC.xml
 privateKey:               C:/Users/peter/.ssh/id_geni_ssh_rsa
-localWorkingDirectory:    C:/Users/peter/Desktop/Research/MTPy
+localWorkingDirectory:    C:/Users/peter/Desktop/Research/PyMTP
 trafficGeneratorLocation: C:/Users/peter/Desktop/MTP_RSTP_Test_Stuff/Protocol_Testing_Workspace/TrafficGenerator.py
 endnodeInfoLocation:      C:/Users/peter/Desktop/MTP_RSTP_Test_Stuff/Protocol_Testing_Workspace/addrInfo.cnf
 
 [MTP Utilities]
-localCodeDirectory:     C:/Users/peter/Desktop/Research/MTPy/pymtp
-localTestDirectory:     C:/Users/peter/Desktop/Research/MTPy/test
-localSetupDirectory:    C:/Users/peter/Desktop/Research/MTPy/setup
+localCodeDirectory:     C:/Users/peter/Desktop/Research/PyMTP/pymtp
+localTestDirectory:     C:/Users/peter/Desktop/Research/PyMTP/test
+localSetupDirectory:    C:/Users/peter/Desktop/Research/PyMTP/setup
 endNodesInTopology:     true
 endNodeTrafficSource:   endnode-2
 endNodeTrafficDest:		endnode-9

@@ -45,7 +45,9 @@ class PIDTable:
 
     # Adds a parent for the node, which is closer to the compute nodes/subnets (leaf parent for a spine)
     def addParent(self, leafID, spineID, cost, intf):
-        self.table[intf] = DownstreamEntry(leafID, spineID, cost, datetime.now().time())
+        if type(self.table[intf]) is not list: # We need to convert the structure to a list. Perhaps because it was an upstream interface prior?
+            self.table[intf] = []
+        self.table[intf].append(DownstreamEntry(leafID, spineID, cost, datetime.now().time()))
 
         return
 
@@ -64,36 +66,39 @@ class PIDTable:
 
     #BUG: You never know about other pod's leaf IDs, you just know about your own, so upstream ones will keep going until you hit the top, which will know if its correct or not
     def getEgressInterface(self, srcLeafID, dstLeafID):
-        egressIntf = "None"
+        egressIntf = self.getEgressDownstreamInterface(dstLeafID)
 
-        for intf in self.table:
-            if isinstance(self.table[intf], DownstreamEntry) and dstLeafID == self.table[intf].leafID:
-                egressIntf = intf
-                logging.debug("\n[routing] Msg routed DOWN towards destination")
-                break
-        
         if(egressIntf == "None"):
             egressIntf = self.getEgressUpstreamInterface(srcLeafID, dstLeafID)
-            logging.debug("\n[routing] Msg routed UP")
-
+            
         return egressIntf
 
     # Determines which interface/leaf node to send a packet to, utilizes MTP routed header information
     def getEgressDownstreamInterface(self, dstLeafID):
         for intf in self.table:
-            if isinstance(self.table[intf], DownstreamEntry) and dstLeafID == self.table[intf].leafID:
-                return intf
+            if isinstance(self.table[intf], list):
+                for leafIDEntry in self.table[intf]:
+                    if isinstance(leafIDEntry, DownstreamEntry) and dstLeafID == leafIDEntry.leafID:
+                        logging.debug("\n[routing] Msg routed DOWN towards destination")
+                        return intf
 
         return "None"
 
     # Determines which interface/spine node to send a packet to via L3 addressing or MTP ID addressing, utilizes common hashing techniques
     def getEgressUpstreamInterface(self, srcID, dstID):
+        logging.debug("\n[routing] Msg attempted to be routed UP")
+
         # Craft a string-based key in the form: "sourceIdentifier;destinationIdentifier"
         key = "{src};{dst}".format(src=srcID, dst=dstID)
 
         # Input key into the hashing algorithm and get egress interface (uses built-in Python 3 hashing algorithm, whatever it may be)
         IPHash = hash(key)
-        egressIntfNum = (IPHash % self.portKey) # To get X in ethX
+
+        try:
+            egressIntfNum = (IPHash % self.portKey) # To get X in ethX
+        except ZeroDivisionError:
+            return "None"
+
         egressIntfName = self.intfDict[egressIntfNum]
 
         return egressIntfName

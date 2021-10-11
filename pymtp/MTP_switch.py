@@ -90,16 +90,22 @@ def leafProcess(hostInt):
             sourceIP = receivedFrame[IP].src
             destinationIP = receivedFrame[IP].dst
             destinationLeafID = int(getLeafIDFromIPAddress(receivedFrame[IP].dst))
+            
             egressInt = leafTable.getEgressUpstreamInterface(sourceIP, destinationIP)
+            # If a valid egress interface is found
+            if(egressInt != "None"):
+                # Craft an MTP routed message (encapsulate compute node IPv4 packet in MTP routed header) to send out of the chosen interface
+                encapedFrame = Ether(src=getMACAddress(egressInt), dst=DEST_MTP_PHY_ADDR)/MTP(type=MTP_ROUTED, srcleafID=leafID, dstleafID=destinationLeafID)/receivedFrame[IP]
 
-            # Craft an MTP routed message (encapsulate compute node IPv4 packet in MTP routed header) to send out of the chosen interface
-            encapedFrame = Ether(src=getMACAddress(egressInt), dst=DEST_MTP_PHY_ADDR)/MTP(type=MTP_ROUTED, srcleafID=leafID, dstleafID=destinationLeafID)/receivedFrame[IP]
+                # Send the MTP routed message out of the chosen egress interface/to the chosen spine node
+                sendMTPMsg(encapedFrame, egressInt)
+                logging.info("[sent - {0}] Sending MTP-encaped compute node frame to a spine:".format(egressInt))
+                logging.info(encapedFrame.summary())
+                logging.debug("\n" + encapedFrame.show2(dump=True))
 
-            # Send the MTP routed message out of the chosen egress interface/to the chosen spine node
-            sendMTPMsg(encapedFrame, egressInt)
-            logging.info("[sent - {0}] Sending MTP-encaped compute node frame to a spine:".format(egressInt))
-            logging.info(encapedFrame.summary())
-            logging.debug("\n" + encapedFrame.show2(dump=True))
+            # If there is no valid egress interface 
+            else:
+                logging.info("\n[notice] No upstream spines available to route to, msg dropped")
 
         '''else: # If the frame does not contain an MTP routed header or an IPv4 header, we're ignoring for now
             print("\nERROR: Ethertype not MTP or IPv4, frame dropped")'''
@@ -174,7 +180,7 @@ def spineProcess(recvSoc, isTopTier):
                 routeMsg(receivedFrame, outIntf)
                 logging.info("\n[sent - {0}] Msg routed towards destination".format(outIntf))
             else:
-                logging.info("\nError: No route to destination leaf")
+                logging.info("\n[notice] No route to destination leaf")
 
     return
 
