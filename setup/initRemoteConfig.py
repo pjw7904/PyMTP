@@ -23,7 +23,7 @@ def main():
     argParser.add_argument('--test', action = "store_true") # Upload the test directory (../test)
     args = argParser.parse_args()
 
-    # Config command to start a GNU screen and run through 
+    # Config command to start a GNU screen and run through (MAKE SURE FILE IS LF NOT CRLF) 
     startConfig = "screen -dmS conf bash -c 'sudo bash pymtp/initCmds.sh; exec bash'"
 
     print("\n+---------Number of Nodes: {0}--------+".format(len(GENIDict)))
