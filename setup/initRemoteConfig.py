@@ -24,7 +24,7 @@ def main():
     args = argParser.parse_args()
 
     # Config command to start a GNU screen and run through (MAKE SURE FILE IS LF NOT CRLF) 
-    startConfig = "screen -dmS conf bash -c 'sudo bash pymtp/initCmds.sh; exec bash'"
+    startConfig = "screen -dmS conf bash -c 'sudo bash pymtp/initfrr.sh; exec bash'"
 
     print("\n+---------Number of Nodes: {0}--------+".format(len(GENIDict)))
     print("NOTE: If you have previously configured this topology (--config)"
