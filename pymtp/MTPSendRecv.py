@@ -25,8 +25,9 @@ ANCMT_RES = 2
 
 # Builds a leaf announcement message, which is sent to spines to notifiy them of the leaf's existence
 def buildAnnouncementMsg(leafID, outInt, multipleIDs=[]):
-    spineID = [int(outInt.strip("eth"))] # Get the int number only, no "eth" in front
-    
+    # Get the intf number only, no "eth" or other text/nums
+    spineID = [int(outInt.partition('eth')[2])]
+
     if multipleIDs:
         spineID = multipleIDs + spineID 
 

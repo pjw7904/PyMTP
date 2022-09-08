@@ -10,8 +10,8 @@ from ipaddress import ip_network
 
 # Gets the names of local interfaces (ex: eth1)
 def getLocalInterfaces():
-    loopbackIntName = 'lo' # Ubuntu/Linux(?) loopback interface name 
-    intToSkip = "eth0"
+    loopbackIntName = 'lo' # Linux loopback interface name, consistent regardless of platform
+    intToSkip = "eth0" # This is only valid for GENI testbed nodes, ignore otherwise
 
     interfaceList = if_nameindex() # List which includes interfaces in tuples of format (int#, intName)
     filteredIntList = [int[1] for int in interfaceList if int[1] != intToSkip and int[1] != loopbackIntName] # Filter out the int# and any ints to skip over
